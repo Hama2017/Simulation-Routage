@@ -1,0 +1,12 @@
+#NOEUDS
+machine,PC-A
+machine,PC-B
+machine,PC-C
+commutateur,R1
+commutateur,R2
+
+#LIENS
+PC-A,eth0,R1,eth0,1
+PC-B,eth0,R1,eth1,2
+PC-C,eth0,R2,eth0,3
+R1,eth2,R2,eth1,5
