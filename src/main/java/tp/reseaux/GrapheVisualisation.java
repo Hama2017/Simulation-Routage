@@ -8,8 +8,7 @@ import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
 import org.graphstream.ui.view.Viewer;
-import org.graphstream.ui.view.ViewerListener;
-import org.graphstream.ui.view.ViewerPipe;
+
 
 public class GrapheVisualisation {
     private Reseau reseau;
@@ -55,39 +54,7 @@ public class GrapheVisualisation {
         Viewer viewer = graph.display();
         
         if (interactif) {
-            ViewerPipe pipe = viewer.newViewerPipe();
-            pipe.addViewerListener(new ViewerListener() {
-                @Override
-                public void viewClosed(String viewName) {
-                    System.exit(0);
-                }
-                
-                @Override
-                public void buttonPushed(String id) {
-                    System.out.println("Noeud sélectionné: " + id);
-                }
-                
-                @Override
-                public void buttonReleased(String id) {
-                }
-
-                @Override
-                public void mouseOver(String id) {
-                }
-
-                @Override
-                public void mouseLeft(String id) {
-                }
-            });
-            
-            while (true) {
-                try {
-                    pipe.pump();
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+           // Gerer l'interaction
         }
     }
     
