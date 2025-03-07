@@ -1,252 +1,329 @@
+/**
+ * TP4 - Simulation de routage dans un reseau informatique
+ * Cette classe Main permet de simuler le routage dans un reseau informatique
+ * Elle permet de charger un graphe a partir d'un fichier DGS
+ * Calculer le chemin le plus court entre deux machines
+ * Generer une table de routage pour tous les ordinateurs du reseau
+ * 
+ * @author HAMADOU BA
+ * @github https://github.com/Hama2017
+ * @git https://www-apps.univ-lehavre.fr/forge/bh243413/reseaux-tp-4-routage.git
+ */
+
+
 package tp.reseaux;
-import java.io.BufferedReader;
-import java.io.FileReader;
+
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URL;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
+import org.graphstream.ui.view.Viewer;
+
 public class Main {
-	
-	private static final String CHEMIN_FICHIER_EXEMPLE_DGS = "/Users/hamaba/Documents/Simulation-Routage/src/main/resources/TopologieExemple.dgs";
-    private static GestionnaireChargeurs gestionnaireChargeurs = new GestionnaireChargeurs();
     
+    private static Reseaux reseaux;
+    private static Scanner scanner = new Scanner(System.in);
+    private static boolean quitter = false;
+
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        Reseau reseau = new Reseau();
+        while (!quitter) {
+            afficherMenuPrincipal();
+            
+            try {
+                int choix = lireChoixUtilisateur();
+                traiterChoixMenuPrincipal(choix);
+            } catch (InputMismatchException e) {
+                System.out.println("Erreur: metre un nombre");
+                scanner.nextLine();
+            } catch (Exception e) {
+                System.out.println("Erreur: " + e.getMessage());
+            }
+        }
         
-        System.out.println("=== TP Réseau - Routage ===");
-        System.out.println("Comment souhaitez-vous saisir la topologie ?");
-        System.out.println("1. Charger depuis un fichier texte");
-        System.out.println("2. Charger depuis un fichier DGS");
-        System.out.println("3. Charger l'exemple .DGS prédéfini");
-        
+        System.out.println("\n Bye : = )");
+        scanner.close();
+    }
+    
+    private static void afficherMenuPrincipal() {
+    	
+    	  String titre = 
+                  " _______                                                                     ________\n" +
+                  "/       \\                                                                   /        |\n" +
+                  "$$$$$$$  |  ______    _______   ______    ______   __    __  __    __       $$$$$$$$/______   ______    _______   ______    ______  \n" +
+                  "$$ |__$$ | /      \\  /       | /      \\  /      \\ /  |  /  |/  \\  /  |         $$ | /      \\ /      \\  /       | /      \\  /      \\ \n" +
+                  "$$    $$< /$$$$$$  |/$$$$$$$/ /$$$$$$  | $$$$$$  |$$ |  $$ |$$  \\/$$/          $$ |/$$$$$$  |$$$$$$  |/$$$$$$$/ /$$$$$$  |/$$$$$$  |\n" +
+                  "$$$$$$$  |$$    $$ |$$      \\ $$    $$ | /    $$ |$$ |  $$ | $$  $$<           $$ |$$ |  $$/ /    $$ |$$ |      $$    $$ |$$ |  $$/ \n" +
+                  "$$ |  $$ |$$$$$$$$/  $$$$$$  |$$$$$$$$/ /$$$$$$$ |$$ \\__$$ | /$$$$  \\          $$ |$$ |     /$$$$$$$ |$$ \\_____ $$$$$$$$/ $$ |      \n" +
+                  "$$ |  $$ |$$       |/     $$/ $$       |$$    $$ |$$    $$/ /$$/ $$  |         $$ |$$ |     $$    $$ |$$       |$$       |$$ |      \n" +
+                  "$$/   $$/  $$$$$$$/ $$$$$$$/   $$$$$$$/  $$$$$$$/  $$$$$$/  $$/   $$/          $$/ $$/       $$$$$$$/  $$$$$$$/  $$$$$$$/ $$/       "
+    			+ "\n";
+          
+         
+    	  String auteur = ""
+    	  		+ ""
+    	  		+ "\n"
+    	  		+ ""
+    	  		+ " ▄▄▄▄ ▓██   ██▓    ██░ ██  ▄▄▄       ███▄ ▄███▓ ▄▄▄      ▓█████▄  ▒█████   █    ██     ▄▄▄▄    ▄▄▄      \n"
+    	  		+ "▓█████▄▒██  ██▒   ▓██░ ██▒▒████▄    ▓██▒▀█▀ ██▒▒████▄    ▒██▀ ██▌▒██▒  ██▒ ██  ▓██▒   ▓█████▄ ▒████▄    \n"
+    	  		+ "▒██▒ ▄██▒██ ██░   ▒██▀▀██░▒██  ▀█▄  ▓██    ▓██░▒██  ▀█▄  ░██   █▌▒██░  ██▒▓██  ▒██░   ▒██▒ ▄██▒██  ▀█▄  \n"
+    	  		+ "▒██░█▀  ░ ▐██▓░   ░▓█ ░██ ░██▄▄▄▄██ ▒██    ▒██ ░██▄▄▄▄██ ░▓█▄   ▌▒██   ██░▓▓█  ░██░   ▒██░█▀  ░██▄▄▄▄██ \n"
+    	  		+ "░▓█  ▀█▓░ ██▒▓░   ░▓█▒░██▓ ▓█   ▓██▒▒██▒   ░██▒ ▓█   ▓██▒░▒████▓ ░ ████▓▒░▒▒█████▓    ░▓█  ▀█▓ ▓█   ▓██▒\n"
+    	  		+ "░▒▓███▀▒ ██▒▒▒     ▒ ░░▒░▒ ▒▒   ▓▒█░░ ▒░   ░  ░ ▒▒   ▓▒█░ ▒▒▓  ▒ ░ ▒░▒░▒░ ░▒▓▒ ▒ ▒    ░▒▓███▀▒ ▒▒   ▓▒█░\n"
+    	  		+ "▒░▒   ░▓██ ░▒░     ▒ ░▒░ ░  ▒   ▒▒ ░░  ░      ░  ▒   ▒▒ ░ ░ ▒  ▒   ░ ▒ ▒░ ░░▒░ ░ ░    ▒░▒   ░   ▒   ▒▒ ░\n"
+    	  		+ " ░    ░▒ ▒ ░░      ░  ░░ ░  ░   ▒   ░      ░     ░   ▒    ░ ░  ░ ░ ░ ░ ▒   ░░░ ░ ░     ░    ░   ░   ▒   \n"
+    	  		+ " ░     ░ ░         ░  ░  ░      ░  ░       ░         ░  ░   ░        ░ ░     ░         ░            ░  ░\n"
+    	  		+ "      ░░ ░                                                ░                                 ░           ";
+         
+
+        System.out.println(titre);
+    	  
+    	  
+    	System.out.println(auteur);
+          
+        System.out.println("\n===== MENU =====");
+        System.out.println("1. Charger un Fichier DGS");
+        System.out.println("2. Charger Fichier Exemple");
+        System.out.println("3. Aide");
+        System.out.println("0. Quitter");
+        System.out.print("Ton choix: ");
+    }
+    
+    private static int lireChoixUtilisateur() {
         int choix = scanner.nextInt();
-        
+        scanner.nextLine();
+        return choix;
+    }
+    
+    private static void traiterChoixMenuPrincipal(int choix) {
         switch (choix) {
+            case 0:
+                quitter = true;
+                break;
             case 1:
-                chargerDepuisFichier(reseau, scanner);
+                chargerFichierDGS();
                 break;
             case 2:
-                chargerDepuisFichierAvecGestionnaire(reseau, scanner);
+                chargerFichierExempleParDefaut();
                 break;
             case 3:
-                chargerExemple(reseau);
+                afficherAide();
                 break;
             default:
-                System.out.println("Choix invalide. Utilisation de l'exemple prédéfini.");
-                chargerExemple(reseau);
-        }
-        
-        GrapheVisualisation visualisation = new GrapheVisualisation(reseau, false);
-        visualisation.afficher();
-        
-        while (true) {
-            System.out.println("\n=== Menu principal ===");
-            System.out.println("1. Trouver le chemin le plus court entre deux noeuds");
-            System.out.println("2. Générer les tables de routage");
-            System.out.println("3. Établir un circuit virtuel");
-            System.out.println("4. Quitter");
-            System.out.print("Votre choix: ");
-            
-            int menuChoice = scanner.nextInt();
-            
-            switch (menuChoice) {
-                case 1:
-                    rechercherCheminPlusCourt(reseau, scanner, visualisation);
-                    break;
-                case 2:
-                    genererTablesRoutage(reseau);
-                    break;
-                case 3:
-                    etablirCircuitVirtuel(reseau, scanner);
-                    break;
-                case 4:
-                    System.out.println("Au revoir merci = ) ");
-                    System.exit(0);
-                    break;
-                default:
-                    System.out.println("Choix invalide.");
-            }
+                System.out.println("Option pas valide, reessaye");
         }
     }
-    
-    private static void chargerDepuisFichier(Reseau reseau, Scanner scanner) {
-        try {
-            System.out.print("Entrez le chemin du fichier: ");
-            
-            String filePath = scanner.next();
-            
-            BufferedReader reader = new BufferedReader(new FileReader(filePath));
-            String line;
-            // Format attendu:
-            // #NOEUDS
-            // type,id
-            // #LIENS
-            // noeud1,interface1,noeud2,interface2,poids
-            
-            boolean readingNodes = false;
-            boolean readingLinks = false;
-            
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.equals("#NOEUDS")) {
-                    readingNodes = true;
-                    readingLinks = false;
-                    continue;
-                } else if (line.equals("#LIENS")) {
-                    readingNodes = false;
-                    readingLinks = true;
-                    continue;
-                } else if (line.isEmpty() || line.startsWith("#")) {
-                    continue;
-                }
-                
-                if (readingNodes) {
-                    String[] parts = line.split(",");
-                    String type = parts[0];
-                    String id = parts[1];
-                    
-                    if ("machine".equalsIgnoreCase(type)) {
-                        reseau.ajouterMachine(id);
-                    } else if ("commutateur".equalsIgnoreCase(type)) {
-                        reseau.ajouterCommutateur(id);
-                    }
-                } else if (readingLinks) {
-                    String[] parts = line.split(",");
-                    String noeud1Id = parts[0];
-                    String interface1 = parts[1];
-                    String noeud2Id = parts[2];
-                    String interface2 = parts[3];
-                    int poids = Integer.parseInt(parts[4]);
-                    
-                    Noeud noeud1 = reseau.trouverNoeud(noeud1Id);
-                    Noeud noeud2 = reseau.trouverNoeud(noeud2Id);
-                    
-                    if (noeud1 != null && noeud2 != null) {
-                        reseau.ajouterLien(noeud1, interface1, noeud2, interface2, poids);
-                    }
-                }
-            }
-            
-            reader.close();
-            System.out.println("Fichier chargé avec succès.");
-        } catch (IOException e) {
-            System.out.println("Erreur lors de la lecture du fichier: " + e.getMessage());
-            System.out.println("Utilisation de l'exemple prédéfini à la place.");
-            chargerExemple(reseau);
-        }
-    }
-    
-    private static void chargerDepuisFichierAvecGestionnaire(Reseau reseau, Scanner scanner) {
-        System.out.print("Entrez le chemin du fichier DGS: ");
-        String cheminFichier = scanner.next();
-        
-        boolean succes = gestionnaireChargeurs.chargerTopologie(reseau, cheminFichier);
-        
-        if (succes) {
-            System.out.println("Fichier DGS chargé avec succès.");
-        } else {
-            System.out.println("Impossible de charger le fichier DGS. Utilisation de l'exemple prédéfini.");
-            chargerExemple(reseau);
-        }
-    }
-    
-    private static void chargerExemple(Reseau reseau) {
-        System.out.println("Chargement de l'exemple...");
-        
-        
-        boolean succes = gestionnaireChargeurs.chargerTopologie(reseau, CHEMIN_FICHIER_EXEMPLE_DGS);
-        
-        if (succes) {
-            System.out.println("Fichier DGS chargé avec succès.");
-        } else {
-            System.out.println("Impossible de charger le fichier DGS. Utilisation de l'exemple prédéfini.");
-            chargerExemple(reseau);
-        }
-        
-        System.out.println("Exemple chargé avec succès.");
-    }
-    
-    private static void rechercherCheminPlusCourt(Reseau reseau, Scanner scanner, GrapheVisualisation visualisation) {
-        System.out.println("\nNoeuds disponibles:");
-        for (Noeud noeud : reseau.getNoeuds()) {
-            System.out.println("- " + noeud.getId());
-        }
-        
-        System.out.print("Entrez l'ID du noeud source: ");
-        String sourceId = scanner.next();
-        System.out.print("Entrez l'ID du noeud destination: ");
-        String destId = scanner.next();
-        
-        Noeud source = reseau.trouverNoeud(sourceId);
-        Noeud destination = reseau.trouverNoeud(destId);
-        
-        if (source == null || destination == null) {
-            System.out.println("Source ou destination invalide.");
-            return;
-        }
-        
-        List<Noeud> chemin = reseau.trouverCheminPlusCourt(source, destination);
+
+    private static void chargerFichierDGS() {
+        System.out.print("Entre le chemin du fichier DGS (ou entrer pour revenir): ");
+        String chemin = scanner.nextLine();
         
         if (chemin.isEmpty()) {
-            System.out.println("Aucun chemin trouvé entre " + sourceId + " et " + destId);
             return;
         }
         
-        System.out.println("\nChemin le plus court de " + sourceId + " à " + destId + ":");
-        for (int i = 0; i < chemin.size(); i++) {
-            System.out.print(chemin.get(i).getId());
-            if (i < chemin.size() - 1) {
-                Noeud courant = chemin.get(i);
-                Noeud suivant = chemin.get(i + 1);
-                Interface interfaceSortie = reseau.trouverInterfaceVers(courant, suivant);
-                System.out.print(" (" + interfaceSortie.getNom() + ") -> ");
+        File fichier = new File(chemin);
+        
+        if (fichier.exists() && fichier.isFile()) {
+            try {
+                ReseauxParseur rp = new DGSReseauxParseur(fichier);
+                reseaux = rp.importDGS();
+                System.out.println("Fichier charge");
+                afficherReseaux();
+                menuActions();
+            } catch (FileNotFoundException e) {
+                System.out.println("Erreur: Fichier pas trouve");
+            } catch (IOException e) {
+                System.out.println("Probleme lecture fichier: " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println("Erreur: " + e.getMessage());
+            }
+        } else {
+            System.out.println("Le fichier existe pas");
+        }
+    }
+
+    private static void chargerFichierExempleParDefaut() {
+    	
+    	File fichier = null;
+
+        try {
+
+            URL ressourceUrl = Main.class.getClassLoader().getResource("TopologieExemple.dgs");
+            fichier = new File(ressourceUrl.toURI());            
+            if (!fichier.exists()) {
+                System.out.println("Fichier exemple existe pas");
+                System.out.print("Entre le chemin du fichier exemple (ou entrer pour revenir): ");
+                String chemin = scanner.nextLine();
+                
+                if (chemin.isEmpty()) {
+                    return;
+                }
+                
+                fichier = new File(chemin);
+                if (!fichier.exists() || !fichier.isFile()) {
+                    System.out.println("Fichier existe pas");
+                    return;
+                }
+            }
+            
+            ReseauxParseur rp = new DGSReseauxParseur(fichier);
+            reseaux = rp.importDGS();
+            
+            System.out.println("Fichier exemple charge");
+            afficherReseaux();
+            menuActions();
+            
+        } catch (FileNotFoundException e) {
+            System.out.println("Erreur: Fichier pas trouve");
+        } catch (IOException e) {
+            System.out.println("Probleme lecture fichier: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Erreur: " + e.getMessage());
+        }
+    }
+
+    private static void afficherReseaux() {
+        if (reseaux != null && reseaux.getGraph() != null) {
+            try {
+                Viewer vw = reseaux.getGraph().display();
+                vw.disableAutoLayout();
+            } catch (Exception e) {
+                System.out.println("Erreur affichage graphe: " + e.getMessage());
             }
         }
-        System.out.println();
+    }
+
+    private static void afficherAide() {
+        System.out.println("\n===== AIDE =====");
+        System.out.println("Ce programme charge un reseau a partir dun fichier DGS");
+        System.out.println("Tu peux:");
+        System.out.println("- Voir le reseau");
+        System.out.println("- Calculer chemin le plus court");
+        System.out.println("- Generer table de routage");
+        System.out.println("\nAppuyer sur entrer pour revenir...");
+        scanner.nextLine();
+    }
+
+    private static void menuActions() {
+        if (reseaux == null) {
+            System.out.println("Erreur: Pas de reseau charge");
+            return;
+        }
+
+        boolean retourMenuPrincipal = false;
         
-        visualisation.afficherChemin(chemin);
-    }
-    
-    private static void genererTablesRoutage(Reseau reseau) {
-        System.out.println("\nGénération des tables de routage...");
-        reseau.genererTablesRoutage();
-        reseau.afficherTablesRoutage();
-    }
-    
-    private static void etablirCircuitVirtuel(Reseau reseau, Scanner scanner) {
-        System.out.println("\nMachines disponibles:");
-        for (Noeud noeud : reseau.getNoeuds()) {
-            if (noeud instanceof Machine) {
-                System.out.println("- " + noeud.getId());
+        while (!retourMenuPrincipal) {
+            System.out.println("\n===== ACTIONS =====");
+            System.out.println("1. Trouver chemin plus court");
+            System.out.println("2. Generer table routage");
+            System.out.println("0. Retour menu");
+            System.out.print("Ton choix: ");
+            
+            try {
+                int choix = scanner.nextInt();
+                scanner.nextLine();
+                
+                switch (choix) {
+                    case 0:
+                        retourMenuPrincipal = true;
+                        break;
+                    case 1:
+                        trouverCheminPlusCourt();
+                        break;
+                    case 2:
+                        tracerTableauRoutage();
+                        break;
+                    default:
+                        System.out.println("Option invalide, reessayer");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Erreur: mettre un nombre");
+                scanner.nextLine();
+            } catch (Exception e) {
+                System.out.println("Erreur: " + e.getMessage());
             }
         }
+    }
+
+    private static void trouverCheminPlusCourt() {
+        if (reseaux == null || reseaux.getOrdinateurs().isEmpty()) {
+            System.out.println("Pas dordinateur dispo");
+            return;
+        }
+
+        List<Ordinateur> ordinateurs = reseaux.getOrdinateurs();
         
-        System.out.print("Entrez l'ID de la machine source: ");
-        String sourceId = scanner.next();
-        System.out.print("Entrez l'ID de la machine destination: ");
-        String destId = scanner.next();
+        System.out.println("\nOrdinateurs dispo:");
+        for (Ordinateur ord : ordinateurs) {
+            System.out.println("- " + ord.getId());
+        }
         
-        Noeud source = reseau.trouverNoeud(sourceId);
-        Noeud destination = reseau.trouverNoeud(destId);
+        System.out.print("\nMachine source (ou entrerr pour revenir): ");
+        String sourceName = scanner.nextLine();
         
-        if (source == null || destination == null || 
-            !(source instanceof Machine) || !(destination instanceof Machine)) {
-            System.out.println("Source ou destination invalide. Veuillez choisir des machines.");
+        if (sourceName.isEmpty()) {
+            return;
+        }
+    
+        Ordinateur source = trouveOrdinateurParNom(sourceName);
+        if (source == null) {
+            System.out.println("Machine source " + sourceName + " introuvable");
+            return;
+        }
+
+        System.out.print("Machine destination (ou entrer pour revenir): ");
+        String destinationName = scanner.nextLine();
+        
+        if (destinationName.isEmpty()) {
             return;
         }
         
-        List<String> circuit = reseau.genererCircuitVirtuel(source, destination);
-        
-        if (circuit.isEmpty()) {
-            System.out.println("Impossible d'établir un circuit virtuel entre " + 
-                             sourceId + " et " + destId);
+        if (sourceName.equalsIgnoreCase(destinationName)) {
+            System.out.println("Les machine doivent etre different");
             return;
         }
         
-        System.out.println("\nCircuit virtuel de " + sourceId + " à " + destId + ":");
-        for (int i = 0; i < circuit.size(); i++) {
-            System.out.println((i+1) + ". " + circuit.get(i));
+        Ordinateur destination = trouveOrdinateurParNom(destinationName);
+        if (destination == null) {
+            System.out.println("Machine destination " + destinationName + " introuvable");
+            return;
         }
+        
+        try {
+            String cheminLePlusCourt = reseaux.trouverCheminPlusCourt(sourceName, destinationName);
+            System.out.println("\nChemin plus court de " + sourceName + " vers " + destinationName + " : " + cheminLePlusCourt);
+        } catch (Exception e) {
+            System.out.println("Erreur calcul du chemin: " + e.getMessage());
+        }
+        
+        System.out.println("\nAppuyer sur entrerpour continuer...");
+        scanner.nextLine();
+    }
+
+    private static void tracerTableauRoutage() {
+        try {
+            System.out.println("\nTable de routage du reseau:");
+            reseaux.genererTableDeRoutage();
+        } catch (Exception e) {
+            System.out.println("Erreur generation table: " + e.getMessage());
+        }
+        
+        System.out.println("\nAppuyer sur entrerpour continuer...");
+        scanner.nextLine();
+    }
+
+    private static Ordinateur trouveOrdinateurParNom(String nom) {
+        if (reseaux == null) return null;
+        
+        for (Ordinateur ord : reseaux.getOrdinateurs()) {
+            if (ord.getId().equalsIgnoreCase(nom)) {
+                return ord;
+            }
+        }
+        return null;
     }
 }

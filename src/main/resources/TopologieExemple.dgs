@@ -1,11 +1,11 @@
 DGS004
 null 0 0
-an C1
-an C2
-an C3
-an C4
-an C5
-an C6
+an C1 xy: 0,1
+an C2 xy: 1,2
+an C3 xy: 1,0
+an C4 xy: 2,2
+an C5 xy: 2,0
+an C6 xy: 3,1
 ae C1C2 C1 C2 weight:1
 ae C1C3 C1 C3 weight:2
 ae C2C3 C2 C3 weight:2
